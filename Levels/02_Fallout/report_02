@@ -1,0 +1,16 @@
+
+Level 02: Fallout
+
+    Vulnerability Category: Deprecated Constructor Pattern / Access Control |
+    Severity: Critical | Likelihood: High
+    
+    Description: This is a classic example of a "typo-based" vulnerability. The function intended to be the constructor (Fal1out) is misnamed (notice the '1' instead of 'l'), making it a public, callable function instead of a one-time initialization block.
+
+    Attack Vector: 1. Call the public function Fal1out() directly.
+    
+    The contract assigns msg.sender as the owner.
+    Unauthorized access to all onlyOwner functions is granted.
+
+    AI Insight (Cursor): Cursor's symbol search immediately flagged that Fal1out was not being treated as a constructor by the compiler, but as a standard public function, highlighting the lack of access modifiers.
+
+    Remediation: Use the constructor keyword (introduced in Solidity 0.4.22) instead of naming the function after the contract. Always use static analysis tools like Slither to detect naming mismatches.
