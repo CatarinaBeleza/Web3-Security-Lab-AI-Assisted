@@ -1,0 +1,16 @@
+
+Level 03: Coin Flip
+
+    Vulnerability Category: Insecure Randomness / Deterministic Entropy | Severity: High | Likelihood: High
+
+    Description: The contract attempts to generate randomness using on-chain data (blockhash and block.number). Since the Ethereum blockchain is deterministic, any attacker can calculate the "random" result in the same block and submit the correct guess with 100% certainty.
+
+    Attack Vector: 1. Deploy a malicious "Attacker" contract.
+    
+    In the attack function, replicate the logic: uint256 blockValue = uint256(blockhash(block.number - 1)).
+    
+    Calculate the side (blockValue / FACTOR) and call flip() on the original contract with the pre-calculated answer.
+
+    AI Insight (Claude 3.5): I tasked the AI with writing a Foundry PoC that simulates a 10-win streak. The AI correctly identified that blockhash for the current block is not available (returns 0), requiring the use of block.number - 1.
+
+    Remediation: Never use on-chain variables for randomness. Integrate a Chainlink VRF (Verifiable Random Function) or other off-chain oracle solutions to ensure cryptographically secure entropy.
