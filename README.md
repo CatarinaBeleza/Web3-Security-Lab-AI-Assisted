@@ -5,8 +5,7 @@ Ethernaut Levels
 . . . _______________________________________________ . . .
 
 Level 01: Fallback
-    Vulnerability Category: Broken Access Control / Logic Flaw
-    Severity: Critical | Likelihood: High
+    Vulnerability Category: Broken Access Control / Logic Flaw |Severity: Critical | Likelihood: High
     
     Description: The contract contains a logic flaw in the receive() fallback function. It allows any user to claim ownership (owner = msg.sender) as long as they have a non-zero contribution. The contribute() function, while intended to gatekeep ownership, fails to protect the state against this implicit transition.
     
@@ -23,7 +22,7 @@ Level 01: Fallback
 . . . _______________________________________________ . . .
 
 Level 02: Fallout
-    Vulnerability Category: Deprecated Constructor Pattern / Access Control
+    Vulnerability Category: Deprecated Constructor Pattern / Access Control |
     Severity: Critical | Likelihood: High
     
     Description: This is a classic example of a "typo-based" vulnerability. The function intended to be the constructor (Fal1out) is misnamed (notice the '1' instead of 'l'), making it a public, callable function instead of a one-time initialization block.
@@ -40,9 +39,7 @@ Level 02: Fallout
 . . . _______________________________________________ . . .
 
 Level 03: Coin Flip
-    Vulnerability Category: Insecure Randomness / Deterministic Entropy
-
-    Severity: High | Likelihood: High
+    Vulnerability Category: Insecure Randomness / Deterministic Entropy | Severity: High | Likelihood: High
 
     Description: The contract attempts to generate randomness using on-chain data (blockhash and block.number). Since the Ethereum blockchain is deterministic, any attacker can calculate the "random" result in the same block and submit the correct guess with 100% certainty.
 
