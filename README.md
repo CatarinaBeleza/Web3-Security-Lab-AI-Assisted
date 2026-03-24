@@ -51,6 +51,30 @@ Level 03: Coin Flip
 
     AI Insight (Claude 3.5): I tasked the AI with writing a Foundry PoC that simulates a 10-win streak. The AI correctly identified that blockhash for the current block is not available (returns 0), requiring the use of block.number - 1.
 
-    Remediation: Never use on-chain variables for randomness. Integrate a Chainlink VRF (Verifiable Random Function) or other off-chain oracle solutions to ensure cryptographically secure entropy.
+### 🛡️ Vulnerability: Deterministic Randomness
+The core vulnerability in this contract is the use of **on-chain data for randomness generation**. 
+
+In Solidity, variables like `blockhash`, `block.timestamp`, and `block.number` are predictable. In the `CoinFlip` contract, the winning side is calculated using `blockhash(block.number - 1)`. Since this value is public and accessible to any other smart contract in the same block, the "random" result is actually **deterministic**.
+
+**How the attack works:**
+1. An attacker creates a malicious contract that replicates the exact same math as the target contract.
+2. Because the attacker contract calls the target contract within the **same transaction**, they both share the same `block.number`.
+3. The attacker calculates the winning side *before* making the call, ensuring a 100% success rate.
+
+---
+
+### 🛠️ Remediation: Verifiable Randomness (VRF)
+To fix this, developers should never rely on on-chain data for generating numbers that require high entropy or security.
+
+**The Solution: Chainlink VRF**
+The industry standard is to use an external oracle, such as **Chainlink VRF (Verifiable Random Function)**. 
+
+1. **Request:** The contract requests a random number from the oracle.
+2. **Off-chain Generation:** The oracle generates a random number and a cryptographic proof.
+3. **Verification:** The oracle sends the number back to the smart contract via a callback function. The proof is verified on-chain to ensure the number was not tampered with by the oracle or the miners.
+
+**Other Best Practices:**
+* **Commit-Reveal Schemes:** Users commit to a value (hashed) and reveal it later, though this is more complex to implement and can be prone to "liveness" attacks.
+* **Avoid `blockhash`:** Never use `blockhash` or `block.timestamp` for anything involving value or game logic.
 
     . . . _______________________________________________ . . .
