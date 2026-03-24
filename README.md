@@ -114,8 +114,5 @@ The industry standard is to use an external oracle, such as **Chainlink VRF (Ver
 2. **Off-chain Generation:** The oracle generates a random number and a cryptographic proof.
 3. **Verification:** The oracle sends the number back to the smart contract via a callback function. The proof is verified on-chain to ensure the number was not tampered with by the oracle or the miners.
 
-**Other Best Practices:**
-* **Commit-Reveal Schemes:** Users commit to a value (hashed) and reveal it later, though this is more complex to implement and can be prone to "liveness" attacks.
-* **Avoid `blockhash`:** Never use `blockhash` or `block.timestamp` for anything involving value or game logic.
 
     . . . _______________________________________________ . . .
