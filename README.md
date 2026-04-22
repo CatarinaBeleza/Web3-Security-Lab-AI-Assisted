@@ -116,3 +116,117 @@ The industry standard is to use an external oracle, such as **Chainlink VRF (Ver
 
 
     . . . _______________________________________________ . . .
+
+### Level 04: Telephone
+**Vulnerability Category:** Authorization Bypass | **Severity:** Medium | **Likelihood:** High
+
+**Description:** The contract uses `tx.origin` to validate the caller's identity. In Solidity, `tx.origin` refers to the original external account that started the transaction chain, whereas `msg.sender` is the immediate caller.
+
+**Attack Vector:**
+1. Create a malicious intermediary contract.
+2. The attacker's contract calls the `changeOwner()` function of the victim contract.
+3. The victim checks `tx.origin` (the attacker) instead of `msg.sender` (the malicious contract), allowing the ownership change.
+
+**AI Insight:** AI models can quickly flag `tx.origin` as a deprecated security practice. The AI identifies that an intermediary contract acts as a "man-in-the-middle" that satisfies the origin check while hiding the actual logic execution.
+
+**Remediation:** Use `msg.sender` for authorization checks. `tx.origin` should almost never be used for security-critical logic.
+
+  . . . _______________________________________________ . . .
+
+### Level 05: Token
+**Vulnerability Category:** Arithmetic Error (Integer Underflow) | **Severity:** High | **Likelihood:** High
+
+**Description:** In Solidity versions $< 0.8.0$, integers do not have built-in overflow/underflow protection. If a user with a balance of $0$ subtracts $1$, the balance "wraps around" to $2^{256} - 1$.
+
+**Attack Vector:**
+1. Call the `transfer()` function with a value greater than your current balance.
+2. The check `require(balances[msg.sender] - _value >= 0)` passes because the underflow results in a massive positive number.
+3. The attacker's balance becomes nearly infinite.
+
+**AI Insight:** The AI detects the lack of `SafeMath` or the use of an old compiler version. It predicts the "wrap-around" effect by simulating a subtraction that exceeds the lower bound of `uint256`.
+
+**Remediation:** Use Solidity $0.8.0$ or higher (which has built-in checks) or the OpenZeppelin `SafeMath` library for older versions.
+
+  . . . _______________________________________________ . . .
+
+### Level 06: Delegation
+**Vulnerability Category:** Dangerous Delegatecall | **Severity:** Critical | **Likelihood:** Medium
+
+**Description:** The contract uses `delegatecall` to execute functions from another contract. `delegatecall` runs the code of the target contract but uses the **storage and context** of the calling contract.
+
+**Attack Vector:**
+1. The attacker sends a transaction to the `Delegation` contract with `msg.data` set to the function signature of `pwn()`.
+2. The `fallback()` function triggers `delegatecall` to the `Delegate` contract.
+3. The `pwn()` function executes, but since it's a `delegatecall`, it modifies the `owner` slot of the `Delegation` contract instead of the `Delegate` contract.
+
+**AI Insight:** The AI maps the storage slots of both contracts. It realizes that `delegatecall` is a "double-edged sword" that allows a caller to manipulate the caller's state if the target contract has functions that modify sensitive slots (like slot 0 for `owner`).
+
+**Remediation:** Avoid using `delegatecall` with user-supplied data. Use fixed function calls or strict whitelists for delegate targets.
+
+  . . . _______________________________________________ . . .
+
+### Level 07: Force
+**Vulnerability Category:** Logic Flaw / Forced Ether | **Severity:** Medium | **Likelihood:** Low
+
+**Description:** The contract has no `receive()` or `fallback()` functions, making it appear impossible to receive Ether. However, Ether can be forced into any contract.
+
+**Attack Vector:**
+1. Create a "suicide" contract with some ETH.
+2. Call `selfdestruct(victim_address)`.
+3. The EVM forcefully sends the ETH to the victim, bypassing all logic and function checks.
+
+**AI Insight:** The AI highlights that `address(this).balance` is an unreliable state variable for logic, as it can be altered without the contract's "permission" via `selfdestruct` or coinbase rewards.
+
+**Remediation:** Do not rely on `address(this).balance` for critical logic. Use an internal `uint256` state variable to track deposited funds.
+
+  . . . _______________________________________________ . . .
+
+### Level 08: Vault
+**Vulnerability Category:** Information Disclosure (Privacy Breach) | **Severity:** High | **Likelihood:** High
+
+**Description:** The contract stores a password in a `private` variable. In blockchain, `private` only means other contracts cannot read it; however, all data is public on the ledger.
+
+**Attack Vector:**
+1. Use a web3 provider (like Ethers.js) to call `getStorageAt(contract_address, slot_index)`.
+2. Read the hex value directly from the contract's storage slot.
+3. Use the retrieved password to call `unlock()`.
+
+**AI Insight:** The AI identifies that "Private != Secret". It flags that the storage layout of the EVM is transparent and that any off-chain entity can inspect the state of any variable.
+
+**Remediation:** Never store sensitive plaintext data (passwords, keys) on-chain. Use hashes (Keccak256) or Zero-Knowledge Proofs if data verification is needed without disclosure.
+
+  . . . _______________________________________________ . . .
+
+### Level 09: King
+**Vulnerability Category:** Denial of Service (DoS) | **Severity:** High | **Likelihood:** Medium
+
+**Description:** A contract acts as a "King of the Hill". To become the new king, you send more ETH than the current one. The contract then sends the previous king's ETH back to them.
+
+**Attack Vector:**
+1. The attacker becomes the king using a contract that **refuses to receive ETH** (no `receive()` function or a `revert()` in the fallback).
+2. When a new person tries to become king, the victim contract tries to pay the attacker.
+3. The transfer fails, the transaction reverts, and the attacker remains king forever, breaking the game.
+
+**AI Insight:** The AI recognizes a "Pull-over-Push" violation. It flags that external calls to untrusted addresses can fail and halt the entire execution flow of the contract.
+
+
+
+**Remediation:** Implement a "Withdrawal Pattern" (Pull). Instead of sending ETH automatically, let users claim their funds in a separate transaction.
+
+  . . . _______________________________________________ . . .
+
+### Level 10: Reentrancy
+**Vulnerability Category:** Reentrancy | **Severity:** Critical | **Likelihood:** Medium
+
+**Description:** The contract follows a "Check-Interact-Update" pattern instead of "Check-Update-Interact". It sends ETH before updating the user's balance.
+
+**Attack Vector:**
+1. The attacker contract calls `withdraw()`.
+2. The victim contract sends ETH to the attacker.
+3. The attacker's `receive()` function calls `withdraw()` again **before** the victim updates the balance to zero.
+4. This loop continues until the victim contract is drained.
+
+**AI Insight:** The AI detects the recursive call potential. It identifies that the state change (balance update) happens after the external call, creating a window of inconsistency that can be exploited by a malicious receiver.
+
+**Remediation:** 1. Use the **Checks-Effects-Interactions** pattern (update state before calling). 
+2. Use a `ReentrancyGuard` modifier (mutex) from OpenZeppelin.
